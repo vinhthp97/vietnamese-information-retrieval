@@ -78,44 +78,26 @@ def clean_text(text):
 
 # Tạo chỉ mục ngược
 def create_inverted_index(tokens_id, tokens):
-
-    # Xây dựng tập từ vựng (V) dạng cấu trúc chỉ mục ngược
-    # (V) là cấu trúc dữ liệu dạng dictionary <key: token_1, value: [(doc_idx_1, tf(token_1)), (doc_idx_2, tf(token_1)), v.v.>
-    inverted_index = {}
-
-    # Chúng cũng cần xác định trọng số lớn nhất của từ xuất hiện trong mỗi tài liệu/văn bản để cập nhật lại tf
-    # Cấu trúc dữ liệu dạng dictionary <key: doc_idx, value: <key: token, value: token_freq>>
-    doc_idx_token_token_freq = {}
-
-    # Duyệt qua từng token
-    for token in tokens:
-        # Kiểm tra xem token đã tồn tại trong tập từ vựng (V) hay chưa
-        if token not in inverted_index.keys():
-            inverted_index[token] = [(tokens_id, 1)]
-        else:
-            # Kiểm tra xem tài liệu doc_idx đã có trong danh sách các tài liệu chỉ mục ngược của token này hay chưa
-            is_existed = False
-            for inverted_data_idx, (target_doc_idx, target_tf) in enumerate(inverted_index[token]):
-                if target_doc_idx == tokens_id:
-                    # Tăng tần số xuất hiện của token trong tài liệu (target_doc_idx) lên 1
-                    target_tf+=1
-                    # Cập nhật lại dữ liệu
-                    inverted_index[token][inverted_data_idx] = (target_doc_idx, target_tf)
-                    is_existed = True
-                    break
-            # Trường hợp chưa tồn tại
-            if is_existed == False:
-                inverted_index[token].append((tokens_id, 1))
-            
-            if tokens_id not in doc_idx_token_token_freq.keys():
-                doc_idx_token_token_freq[tokens_id] = {}
-                doc_idx_token_token_freq[tokens_id][token] = 1
-            else:
-                if token not in doc_idx_token_token_freq[tokens_id].keys():
-                    doc_idx_token_token_freq[tokens_id][token] = 1
-                else:
-                    doc_idx_token_token_freq[tokens_id][token] += 1
+    # đọc file orded-data.json
+    with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'ordered-data.json'), 'r', encoding='utf-8') as f:
+        articles = json.load(f)
     
+    # lăp qua từng đối tượng (bài viết đã được xử lý) trong danh sách articles
+    for article in articles:
+        doc_id = article['id']
+        doc_tokens = article['tokens']
+        
+        # Tạo từ điển cho tần suất từ trong tài liệu
+        token_freq = {}
+        for token in doc_tokens:
+            if token in tokens_id:
+                token_freq[token] = token_freq.get(token, 0) + 1
+        
+        # Cập nhật chỉ mục ngược
+        for token, freq in token_freq.items():
+            if token not in tokens:
+                tokens[token] = []
+            tokens[token].append((doc_id, freq))
 
     
 
