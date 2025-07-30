@@ -1,6 +1,8 @@
+from collections import defaultdict
 import math
 import re
 import os
+import numpy as np
 from underthesea import word_tokenize
 import json
 
@@ -155,7 +157,7 @@ def create_inverted_index():
 # và xuất ra file token_df.json
 def calculate_word_idf():
     global number_of_doc
-    token_df = {}
+    token_idf = {}
     # Đọc dữ liệu từ file inverted-index.json
     with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'inverted-index.json'), 'r', encoding='utf-8') as f:
         articles = json.load(f)
@@ -163,7 +165,7 @@ def calculate_word_idf():
     for key, value in articles.items():
         # Tính toán số lượng tài liệu chứa từ khóa (df)
         idf = math.log2(number_of_doc / len(value))
-        token_df[key] = idf
+        token_idf[key] = idf
 
     # Xuất ra file token_df.json
     output_dir = os.path.join(os.path.dirname(
@@ -172,7 +174,9 @@ def calculate_word_idf():
     output_path = os.path.join(output_dir, 'token_idf.json')
 
     with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(token_df, json_file, ensure_ascii=False, indent=4)
+        json.dump(token_idf, json_file, ensure_ascii=False, indent=4)
+
+    return token_idf
 
 
 def find_max_freq_token(doc_tokens):
@@ -194,10 +198,45 @@ def find_max_freq_token(doc_tokens):
     return max_freq
 
 
+def build_tfidf_vector(inverted_index, token_idf, token2idx):
+    # Lấy tất cả doc_id
+    all_doc_ids = set()
+    for doc_tf_list in inverted_index.values():
+        for doc_id, _ in doc_tf_list:
+            all_doc_ids.add(doc_id)
+
+    # Với mỗi tài liệu, lưu {token: normalized_tf}
+    docid_token_tf = defaultdict(dict)
+
+    for token, doc_tf_list in inverted_index.items():
+        for doc_id, tf_norm in doc_tf_list:
+            docid_token_tf[doc_id][token] = tf_norm
+
+    vectors = {}
+    for doc_id in all_doc_ids:
+        vec = np.zeros(len(token2idx))
+        tf_dict = docid_token_tf.get(doc_id, {})
+        for token, idx in token2idx.items():
+            tf = tf_dict.get(token, 0)  # Nếu token không xuất hiện thì là 0
+            idf = token_idf.get(token, 0)
+            vec[idx] = tf * idf
+            print(vec)
+        vectors[doc_id] = vec
+    # print(vectors)
+    return vec
+
+
 # Gọi các hàm để thực hiện tiền xử lý dữ liệu
 read_articles()
 create_inverted_index()
-calculate_word_idf()
+vocab = list(calculate_word_idf())
+token2id = {token: idx for idx, token in enumerate(vocab)}
+with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'inverted-index.json'), 'r', encoding='utf-8') as f:
+    inverted_index = json.load(f)
+with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'token_idf.json'), 'r', encoding='utf-8') as f:
+    token_idf = json.load(f)
+# print()
+build_tfidf_vector(inverted_index, token_idf, token2id)
 
 ################ Xử lý cho truy vấn ################
 
