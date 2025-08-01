@@ -11,16 +11,17 @@
 <body>
     <div class="container mt-5">
         <h1 class="text-center">Hệ thống truy hồi thông tin Tiếng Việt</h1>
-        <form class="d-flex justify-content-center mt-4">
-            <input class="form-control me-2" type="search" placeholder="Type something" aria-label="Search">
+        <form class="d-flex justify-content-center mt-4" (ngSubmit)="search()">
+            <input class="form-control me-2" type="search" placeholder="Type something" aria-label="Search"
+                [(ngModel)]="query" name="query" required>
             <button class="btn btn-secondary" type="submit">Tìm kiếm</button>
         </form>
-        <div *ngFor="let item of allData" for class="mt-4">
+        <div *ngFor="let item of results" for class="mt-4">
             <div class="result-header d-flex">
                 <h2>{{ item.title }}</h2>
                 <span>Điểm tương đồng: {{ item.similarity }}</span>
             </div>
-            <p>{{ item.description }}</p>
+            <p>{{ item.content }}</p>
             <a href="#" class="btn btn-link">Xem chi tiết</a>
             <div class="separator"></div>
         </div>

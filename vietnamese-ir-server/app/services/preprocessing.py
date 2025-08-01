@@ -83,8 +83,11 @@ def clean_text(text):
     # Tiến hành thay thế các khoảng trắng ' ' trong các từ ghép thành '_'
     tokens = [token.replace(' ', '_') for token in tokens]
 
-    # Remove stopwords
+    # Xóa stopwords
     cleaned_tokens = [token for token in tokens if token not in stopwords]
+
+    # Sử dụng kiểu set để xóa lặp
+    cleaned_tokens = list(set(cleaned_tokens))
 
     return cleaned_tokens
 
@@ -94,7 +97,6 @@ def clean_text(text):
 def create_inverted_index():
     global number_of_doc
     overall_token_freq = {}
-    overall_token_df = {}
 
     # đọc file orded-data.json
     with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'ordered-data.json'), 'r', encoding='utf-8') as f:
@@ -129,9 +131,6 @@ def create_inverted_index():
                 # Trường hợp chưa tồn tại
                 if found == False:
                     overall_token_freq[token].append((doc_id, 1))
-
-            # 2- Tìm từ có tần suất xuất hiện cao nhất trong tài liệu
-            current_doc_max_freq = find_max_freq_token(doc_tokens)
 
             # 3- Cập nhật chỉ mục ngược
             D_t = overall_token_freq[token]
@@ -220,10 +219,17 @@ def build_tfidf_vector(inverted_index, token_idf, token2idx):
             tf = tf_dict.get(token, 0)  # Nếu token không xuất hiện thì là 0
             idf = token_idf.get(token, 0)
             vec[idx] = tf * idf
-            print(vec)
-        vectors[doc_id] = vec
-    # print(vectors)
-    return vec
+        vectors[doc_id] = vec.tolist()
+    # Lưu vectors vào file tfidf_vectors.json
+    output_dir = os.path.join(os.path.dirname(
+        __file__), '..', 'data', 'processed-data')
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'tfidf_vectors.json')
+
+    with open(output_path, 'w', encoding='utf-8') as json_file:
+        json.dump(vectors, json_file, ensure_ascii=False, indent=4)
+    print(vectors)
+    return vectors
 
 
 # Gọi các hàm để thực hiện tiền xử lý dữ liệu
@@ -238,12 +244,53 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data'
 # print()
 build_tfidf_vector(inverted_index, token_idf, token2id)
 
+# for testing only
+# with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'token_idf.json'), 'r', encoding='utf-8') as f:
+#     inverted_index = json.load(f)
+# vocab = list(inverted_index)
+# token2id = {token: idx for idx, token in enumerate(vocab)}
+# with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'inverted-index.json'), 'r', encoding='utf-8') as f:
+#     inverted_index = json.load(f)
+# with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'processed-data', 'token_idf.json'), 'r', encoding='utf-8') as f:
+#     token_idf = json.load(f)
+# # print()
+# build_tfidf_vector(inverted_index, token_idf, token2id)
+
 ################ Xử lý cho truy vấn ################
+
+# Tiền xử lý cho query
 
 
 def get_cleaned_query_request(query: str):
-    # Tiền xử lý truy vấn
     query = query.strip().lower()
     # Tokenize và loại bỏ stopwords
     tokens = clean_text(query)
     return tokens
+
+# Vector hóa query
+
+
+def vectorize_query(query: str, token_idf: dict, token2idx: dict):
+    # Tiền xử lý cho query
+    tokens = get_cleaned_query_request(query)
+
+    # Đếm tần suất xuất hiện của các token của
+    freq_dict = {}
+    for token in tokens:
+        freq_dict[token] = freq_dict.get(token, 0) + 1
+
+    if not freq_dict:
+        return np.zeros(len(token2idx))  # Không có token hợp lệ
+
+    max_freq = max(freq_dict.values())
+
+    # Tính TF-IDF vector cho query
+    vec = np.zeros(len(token2idx))
+    for token, freq in freq_dict.items():
+        if token in token2idx:
+            idx = token2idx[token]
+            tf = freq / max_freq
+            idf = token_idf.get(token, 0)
+            vec[idx] = tf * idf
+
+    return vec
