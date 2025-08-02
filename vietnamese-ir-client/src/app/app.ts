@@ -1,13 +1,13 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { SearchResult } from './result.model';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -16,48 +16,70 @@ export class App {
   query = '';
   results: SearchResult[] = [];
   loading: boolean = false;
+  searched: boolean = false;
   error: string | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
-
-  allData: SearchResult[] = [
-    {
-      id: '1',
-      title: 'Sự phát triển của truyền hình thực tế',
-      content: 'Truyền hình thực tế ngày càng phổ biến trên toàn cầu và trở thành một hiện tượng văn hoá...',
-      similarity: 0.75
-    },
-    {
-      id: '2',
-      title: 'Ảnh hưởng của truyền hình thực tế đến giới trẻ',
-      content: 'Bài viết phân tích tác động của các chương trình truyền hình thực tế đến giới trẻ...',
-      similarity: 0.61
-    },
-    {
-      id: '3',
-      title: 'Các chương trình truyền hình thực tế nổi bật',
-      content: 'Bài viết liệt kê và mô tả một số chương trình truyền hình thực tế nổi bật...',
-      similarity: 0.54
-    }
-  ];
-
-  search(): void {
-    if (!this.query.trim()) return;
-
+  // Search từ http://localhost:5000/api/search với query là giá trị của biến query
+  search() {
     this.loading = true;
-    this.results = [];
     this.error = null;
+    //Kiểm tra this.query
+    if (!this.query.trim()) {
+      this.error = 'Vui lòng nhập nội dung.';
+      this.cdr.detectChanges();
+      return;
+    }
 
-    this.http.post<SearchResult[]>('/api/search', { query: this.query }).subscribe({
-      next: (res) => {
-        this.results = res;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Lỗi khi gọi API.';
-        this.loading = false;
-      }
-    });
+    this.http.post<SearchResult[]>('http://localhost:5000/api/search', { query: this.query })
+      .subscribe({
+        next: (data) => {
+          this.results = data;
+          this.loading = false;
+          this.searched = true;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error(err);
+          if (err.status === 404) {
+            this.error = 'Không tìm thấy tài nguyên.';
+          } else {
+            this.error = 'An error occurred while searching.';
+          }
+          this.loading = false;
+          this.searched = true;
+          this.cdr.detectChanges();
+        }
+      });
   }
+
+  // search() {
+  //   if (!this.query.trim()) return;
+
+  //   this.loading = true;
+  //   this.results = [];
+  //   this.error = null;
+
+  //   this.http.post<SearchResult[]>('http://localhost:5000/api/search', { query: this.query }).subscribe({
+  //     next: (res) => {
+  //       this.results = res;
+  //       this.loading = false;
+  //       this.searched = true;
+  //       console.log('Search results:', this.results);
+  //       console.log('Search query:', this.query);
+  //       console.log('Loading state:', this.loading);
+  //     },
+  //     error: (err) => {
+  //       this.error = 'Lỗi khi gọi API.';
+  //       this.loading = false;
+  //       this.searched = true;
+  //     }
+  //   });
+  // }
+
+
+
+
+
 }
