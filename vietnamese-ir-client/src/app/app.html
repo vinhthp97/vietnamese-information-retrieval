@@ -1,9 +1,11 @@
 <div class="container mt-5">
     <h1 class="text-center">Hệ thống truy hồi thông tin Tiếng Việt</h1>
-    <form class="d-flex justify-content-center mt-4" (ngSubmit)="search()">
+    <form #searchForm="ngForm" class="d-flex justify-content-center mt-4" (ngSubmit)="search()">
         <input class="form-control me-2" type="search" placeholder="Type something" aria-label="Search"
             [(ngModel)]="query" name="query" required>
-        <button class="btn btn-secondary" type="submit">Tìm kiếm</button>
+        <button class="btn btn-secondary me-2" type="submit" [disabled]="searchForm.invalid">Tìm kiếm</button>
+        <button class="btn btn-primary me-2" type="button" [disabled]="results?.length === 0" (click)="clear()">Xoá kết
+            quả</button>
     </form>
     <div *ngIf="searched && results && results.length > 0 && !loading && !error">
         <div *ngFor="let item of results" class="mt-4">
@@ -11,11 +13,14 @@
                 <h2>{{ item.title }}</h2>
                 <span>Điểm tương đồng: {{ item.similarity }}</span>
             </div>
-            <p>{{ item.content }}</p>
+            <p>{{ isExpanded[item.id] ? item.content : (item.content | slice:0:300) + '...' }}</p>
+            <button class="btn btn-link p-0" (click)="toggleExpand(item.id)">
+                {{ isExpanded[item.id] ? 'Ẩn bớt' : 'Xem toàn bộ' }}
+            </button>
             <div class="separator"></div>
         </div>
     </div>
-    <div *ngIf="searched && results?.length === 0 && !loading" class="mt-4">
+    <div *ngIf="searched && results.length === 0 && !loading" class="mt-4">
         <p>{{ error }}</p>
     </div>
     <div *ngIf="searched && loading" class="mt-4">Đang tìm kiếm...</div>

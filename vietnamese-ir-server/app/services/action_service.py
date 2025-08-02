@@ -11,7 +11,16 @@ def clean_text(text):  # xử lý văn bản, gồm tách từ, stopword, lower
         __file__), '..', 'data', 'stopwords', 'vietnamese-stopwords.txt')
     with open(stopwords_path, 'r', encoding='utf-8') as f:
         stopwords = set(line.strip() for line in f if line.strip())
-    clean_doc = re.sub('\W+', ' ', text)
+    # clean_doc = re.sub('\W+', ' ', text)
+    # tokens = word_tokenize(clean_doc, format="text").lower().split()
+    # cleaned_tokens = [token for token in tokens if token not in stopwords]
+    text_mod = text
+    # Tìm chuỗi dạng số ngăn cách bằng dấu phẩy hoặc chấm, ví dụ: 1,000 hoặc 1.000 (dấu phân cách phần nghìn hoặc lớn hơn) rồi nối liền lại
+    while re.search(r'(\d)[,.](\d{3})', text_mod):
+        text_mod = re.sub(r'(\d)[,.](\d{3})', r'\1\2', text_mod)
+    # Tìm chuỗi dạng số ngăn cách bằng dấu phẩy hoặc chấm (phần thập phân) rồi thay ngăn cách bằng dấu "_"
+    text_mod = re.sub(r'(\d)[,.](\d+)', r'\1_\2', text_mod)
+    clean_doc = re.sub(r'\W+', ' ', text_mod)
     tokens = word_tokenize(clean_doc, format="text").lower().split()
     cleaned_tokens = [token for token in tokens if token not in stopwords]
     return cleaned_tokens

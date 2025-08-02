@@ -17,20 +17,21 @@ export class App {
   results: SearchResult[] = [];
   loading: boolean = false;
   searched: boolean = false;
-  error: string | null = null;
+  error: string | null = null
+  isExpanded: { [key: string]: boolean } = {};
+
+  toggleExpand(id: string) {
+    this.isExpanded[id] = !this.isExpanded[id];
+  }
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
   // Search từ http://localhost:5000/api/search với query là giá trị của biến query
   search() {
+    this.results = []
     this.loading = true;
     this.error = null;
-    //Kiểm tra this.query
-    if (!this.query.trim()) {
-      this.error = 'Vui lòng nhập nội dung.';
-      this.cdr.detectChanges();
-      return;
-    }
+    this.searched = false;
 
     this.http.post<SearchResult[]>('http://localhost:5000/api/search', { query: this.query })
       .subscribe({
@@ -54,32 +55,15 @@ export class App {
       });
   }
 
-  // search() {
-  //   if (!this.query.trim()) return;
 
-  //   this.loading = true;
-  //   this.results = [];
-  //   this.error = null;
-
-  //   this.http.post<SearchResult[]>('http://localhost:5000/api/search', { query: this.query }).subscribe({
-  //     next: (res) => {
-  //       this.results = res;
-  //       this.loading = false;
-  //       this.searched = true;
-  //       console.log('Search results:', this.results);
-  //       console.log('Search query:', this.query);
-  //       console.log('Loading state:', this.loading);
-  //     },
-  //     error: (err) => {
-  //       this.error = 'Lỗi khi gọi API.';
-  //       this.loading = false;
-  //       this.searched = true;
-  //     }
-  //   });
-  // }
-
-
-
+  clear() {
+    this.query = '';
+    this.loading = false
+    this.error = null;
+    this.searched = false;
+    this.results = [];
+    this.cdr.detectChanges();
+  }
 
 
 }
